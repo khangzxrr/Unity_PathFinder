@@ -22,6 +22,7 @@ public class PlaceObjectsOnPlane : MonoBehaviour
         get;
         private set;
     }
+
     /// <summary>
     /// Invoked whenever an object is placed in on a plane.
     /// </summary>
@@ -30,62 +31,41 @@ public class PlaceObjectsOnPlane : MonoBehaviour
     public void Start()
     {
         placedPaths = new List<GameObject>();
+        Lean.Touch.LeanTouch.OnFingerTap += OnTap;
     }
 
-    void Update()
+    void OnTap(Lean.Touch.LeanFinger leanFinger)
     {
-        if (Input.touchCount > 0)
+        if (leanFinger.ScreenPosition.IsPointOverUIObject())
         {
-            Touch touch = Input.GetTouch(0);
+            Debug.Log("Over UI. skip this touch");
+            return;
+        }
 
-            if (touch.phase == TouchPhase.Began)
+        Debug.Log("Touched!");
+
+        var ray = Camera.main.ScreenPointToRay(leanFinger.ScreenPosition);
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, LayerMask.GetMask("InfinitePlane")))
+        {
+            if (placedOrigin == null)
             {
-                Debug.Log("Touched!");
+                placedOrigin = Instantiate(originPrefab, hit.point, Quaternion.identity);
 
-                var ray = Camera.main.ScreenPointToRay(touch.position);
-                RaycastHit hit;
-                if (Physics.Raycast(ray, out hit, Mathf.Infinity, LayerMask.GetMask("InfinitePlane")))
-                {
-                    if(placedOrigin == null)
-                    {
-                        placedOrigin = Instantiate(originPrefab, hit.point, Quaternion.identity);
+            }
+            else
+            {
+                placedPaths.Add(Instantiate(pathPrefab, hit.point, Quaternion.identity));
+            }
 
-                    }
-                    else
-                    {
-                        placedPaths.Add(Instantiate(pathPrefab, hit.point, Quaternion.identity));
-                    }
-
-                    if (onPlacedObject != null)
-                    {
-                        onPlacedObject();
-                    }
-                }
-
-
-                /*
-                if (m_RaycastManager.Raycast(touch.position, s_Hits, TrackableType.Planes))
-                {
-                    Pose hitPose = s_Hits[0].pose;
-
-                    if (m_NumberOfPlacedObjects < m_MaxNumberOfObjectsToPlace)
-                    {
-                        spawnedObject = Instantiate(m_PlacedPrefab, hitPose.position, hitPose.rotation);
-                        
-                        m_NumberOfPlacedObjects++;
-                    }
-                    else
-                    {
-                        spawnedObject.transform.SetPositionAndRotation(hitPose.position, hitPose.rotation);
-                    }
-                    
-                    if (onPlacedObject != null)
-                    {
-                        onPlacedObject();
-                    }
-                }
-                */
+            if (onPlacedObject != null)
+            {
+                onPlacedObject();
             }
         }
+    }
+    void Update()
+    {
+        
     }
 }
